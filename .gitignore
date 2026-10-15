@@ -1,0 +1,8 @@
+node_modules/
+dist/
+web-dist/
+.env
+playwright-report/
+test-results/
+*.log
+.local/

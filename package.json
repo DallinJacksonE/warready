@@ -1,0 +1,44 @@
+{
+  "name": "war-ready",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"tsx watch backend/server.ts\" \"vite --host 127.0.0.1\"",
+    "build": "npm run typecheck && tsc -p tsconfig.server.json && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "start": "node dist/backend/server.js",
+    "start:local": "MYSQL_HOST=127.0.0.1 MYSQL_PORT=3307 PORT=8080 HOST=127.0.0.1 node --env-file=.env dist/backend/server.js",
+    "format": "prettier --write \"{backend,frontend/src,shared,tests,scripts}/**/*.{ts,tsx,css}\" \"*.{json,ts,yaml}\" frontend/index.html",
+    "lint": "npm run typecheck && prettier --check \"{backend,frontend/src,shared,tests,scripts}/**/*.{ts,tsx,css}\" \"*.{json,ts,yaml}\" frontend/index.html"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "mysql2": "^3.14.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.52.0",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^5.0.2",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/supertest": "^6.0.3",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "prettier": "^3.9.10",
+    "supertest": "^7.1.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}
