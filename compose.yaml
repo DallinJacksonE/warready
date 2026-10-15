@@ -37,7 +37,7 @@ services:
       ADMIN2_USERNAME: ${ADMIN2_USERNAME:-brother}
       ADMIN2_NAME: ${ADMIN2_NAME:-Brother}
       ADMIN2_PASSWORD: ${ADMIN2_PASSWORD:?Set ADMIN2_PASSWORD in .env}
-      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:${APP_PORT:-8080}}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
     depends_on:
       mysql:

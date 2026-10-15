@@ -19,9 +19,7 @@ The goal date is October 16, 2027. The interface uses accessible semantic color 
 
 Prerequisites: Docker Engine with Compose, and permission to access its daemon. The app and database do not need any global Node/MySQL installation.
 
-A local `.env` has already been generated for this working copy, with random passwords and mode 600. It is ignored by git and excluded from Docker builds. Open it locally to retrieve the `dj` and `brother` login passwords; do not paste it into chat or commit it.
-
-For another checkout:
+Create a private `.env` if one does not already exist (do not overwrite an existing configuration). It is ignored by git and excluded from Docker builds:
 
 ```sh
 cp .env.example .env
@@ -36,7 +34,7 @@ docker compose config --quiet
 docker compose up --build -d --wait
 ```
 
-Open `http://localhost:8080`. The app port is bound only to loopback, and MySQL has no published host port. Compose starts MySQL 8.4 and a non-root Node container serving both the React bundle and API. A named volume preserves data through container replacement.
+Open `http://localhost:<APP_PORT>` (8080 by default). The app port is bound only to loopback, and MySQL has no published host port. Compose starts MySQL 8.4 and a non-root Node container serving both the React bundle and API. A named volume preserves data through container replacement.
 
 Safe routine commands:
 
@@ -50,7 +48,40 @@ docker compose up -d --wait
 
 Do not delete `mysql_data` or run `docker compose down -v` unless you explicitly intend to erase all training history.
 
-`APP_ORIGIN` must match the browser origin exactly, with no trailing slash. If changing ports, set both `APP_PORT` and `APP_ORIGIN`. Visiting `127.0.0.1` when configured for `localhost` is a different origin: public reads work, but login/writes are intentionally rejected. Use the configured URL.
+`APP_ORIGIN` must match the browser origin exactly, with no trailing slash. In Compose, leaving it empty defaults to `http://localhost:<APP_PORT>`. If your existing `.env` explicitly sets an origin, update it when changing ports or clear it to use this default. Visiting `127.0.0.1` when configured for `localhost` is a different origin: public reads work, but login/writes are intentionally rejected. Use the configured URL.
+
+### Host port configuration
+
+Only `APP_PORT` needs an unused host port. For example, set `APP_PORT=18080` in `.env` to publish `127.0.0.1:18080` to the app container's port 3000. The frontend and API share this one port. No separate frontend/backend host ports are needed.
+
+MySQL stays private on `mysql:3306` inside the Compose network. It does not bind the server's port 3306 and cannot conflict with a host MySQL or another stack's database. Do not add a database port mapping for the tunnel. Internal container ports can stay fixed because each container has its own network namespace. `PORT` and `MYSQL_PORT` in a host `.env` do not override Compose's intentionally fixed internal ports.
+
+Before choosing a port, check the server's listeners with `ss -ltn`. Apply changes with `docker compose up -d --build --wait`; `docker compose restart` alone does not apply changed environment or port mappings. Avoid running multiple copies of this Compose project with its default project name, since they would manage the same stack.
+
+### Cloudflare Tunnel
+
+For a tunnel connector (`cloudflared`) running directly on the home server, use this `.env` example, keeping your existing database/account credentials:
+
+```dotenv
+APP_PORT=18080
+APP_ORIGIN=https://training.example.com
+COOKIE_SECURE=true
+```
+
+Replace the hostname with your actual domain. In your tunnel's published application route, select HTTP and set the service URL to `http://127.0.0.1:18080`. Cloudflare provides public HTTPS; the connector reaches the local HTTP origin over loopback. Do not forward router ports or publish MySQL. Changing `APP_PORT` also requires updating this tunnel service URL; it does not change the public HTTPS URL.
+
+If `cloudflared` runs in a container, its `127.0.0.1` refers to that container, not the app or server:
+
+- On a Linux home server, a connector using host networking can use the loopback service URL above.
+- Alternatively, attach the connector to this stack's app network and route to `http://app:3000`. Use `docker network ls` to identify the actual network (normally `warready_default`). In this setup, `APP_PORT` is not used by the tunnel; do not route to `app:18080` or attach the connector to unrelated networks unnecessarily.
+
+The connector is not added to this Compose stack, so you can reuse an existing tunnel without storing tunnel credentials in this repository. See [Cloudflare's published application documentation](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/).
+
+After deploying, check `https://training.example.com/api/health`, then sign in from the public HTTPS URL and create/edit an entry. Use that public origin for all authenticated work; local HTTP login is not the intended mode when secure cookies are enabled. Do not configure a Cloudflare cache rule that caches `/api/*`; these responses already send `Cache-Control: no-store`.
+
+The current app does not trust forwarded client-IP headers. Login throttling behind a tunnel may therefore be shared by both users through the connector's IP (10 attempts per 15 minutes), rather than per visitor. Do not blindly enable `trust proxy=true`: configure a trusted proxy boundary before relying on forwarded IPs for per-user rate limiting.
+
+Journals, profiles, and calendar entries are public by design. If only you and your brother should be able to view them, protect the hostname with a Cloudflare Access policy allowing your two identities before publishing it; app login currently protects editing, not reading. Keep private backups before exposing real data.
 
 ## Credentials and security
 
